@@ -1,2 +1,16 @@
+# [START runtime]
 runtime: nodejs
 env: flex
+# [END runtime]
+
+vm_health_check:
+  enable_health_check: False
+
+skip_files:
+ - ^(.*/)?#.*#$
+ - ^(.*/)?.*~$
+ - ^(.*/)?.*\.py[co]$
+ - ^(.*/)?.*/RCS/.*$
+ - ^(.*/)?\..*$
+ - ^(.*/)?.*/node_modules/.*$
+ - ^(.*/)?.*\.logset$

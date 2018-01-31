@@ -1,18 +1,28 @@
 {
-  "name": "boats-n-slips",
-  "version": "0.0.0",
-  "private": true,
-  "scripts": {
-    "start": "node ./bin/www",
-		"deploy":"gcloud app deploy"
+ "name": "boats-n-slips",
+ "version": "0.0.0",
+ "scripts": {
+  "start": "node ./bin/www",
+  "deploy": "gcloud app deploy"
+ },
+ "dependencies": {
+  "body-parser": "~1.18.2",
+  "cookie-parser": "~1.4.3",
+  "debug": "~2.6.9",
+  "dotenv": "^5.0.0",
+  "express": "~4.15.5",
+  "mongodb": "^2.2.33",
+  "morgan": "~1.9.0",
+  "pug": "2.0.0-beta11",
+  "serve-favicon": "~2.4.5"
+ },
+ "cloud-repo-tools": {
+  "test": {
+   "app": {
+    "msg": "Hello, cloud!"
+   }
   },
-  "dependencies": {
-    "body-parser": "~1.18.2",
-    "cookie-parser": "~1.4.3",
-    "debug": "~2.6.9",
-    "express": "~4.15.5",
-    "morgan": "~1.9.0",
-    "pug": "2.0.0-beta11",
-    "serve-favicon": "~2.4.5"
-  }
+  "requiresKeyFile": true,
+  "requiresProjectId": true
+ }
 }
