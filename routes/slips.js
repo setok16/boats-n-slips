@@ -37,18 +37,22 @@ router.get('/:slipId', function(req, res, next) {
 
 /* POST /slips API */
 router.post('/', function(req, res, next) {
+	var data = {};
+	if (req.body.number) {
+		data.number = req.body.number;
+	} else {
+		res.status(403).send('Error: number field must be provided');
+		return;
+	}
 	MongoClient.connect(process.env.MONGO_URL, {}, function(err, db) {
 		var collection = db.collection('slips');
-
-
-		var data = req.body;
 		data.current_boat = "";
 		data.arrival_date = "";
 		data.departure_history = [];
 		console.log(data);
 		collection.insert(data, {w:1}, function(err, result) {
 			if (err) { return console.dir(err) };
-			res.status(200).send('POST Success');
+			res.status(200).send(data);
 		});
 	});
 });
@@ -65,7 +69,13 @@ router.put('/:slipId', function(req, res, next) {
 	MongoClient.connect(process.env.MONGO_URL, {}, function(err, db) {
 		var collection = db.collection('slips');
 		var boatCollection = db.collection('boats');
-		var data = req.body;
+		var data = {};
+		if (req.body.number) {
+			data.number = req.body.number;
+		}
+		if (req.body.current_boat) {
+			data.current_boat = req.body.current_boat;
+		}
 		console.log(data);
 		if (data.current_boat) { // If a ship is arriving
 
