@@ -4,6 +4,13 @@ var nestRouter = express.Router({mergeParams: true});
 var MongoClient = require('mongodb').MongoClient;
 var ObjectId = require('mongodb').ObjectID;
 
+/* Date Variable */
+var dateObj = new Date();
+var year = dateObj.getUTCFullYear();
+var month = dateObj.getUTCMonth()+1;
+var day = dateObj.getUTCDate();
+var currentDate = year + "/" + month + "/" + day;
+
 /* GET /boats API */
 router.get('/', function(req, res, next) {
 	MongoClient.connect(process.env.MONGO_URL, {}, function(err, db) {
@@ -47,7 +54,8 @@ router.post('/', function(req, res, next) {
 			name: req.body.name,
 			type: req.body.type,
 			length: req.body.length,
-			at_sea: true
+			at_sea: true,
+			slip_number: null
 		};
 
 		console.log(data);
@@ -85,12 +93,8 @@ router.put('/:boatId', function(req, res, next) {
 		}
 		console.log(data);
 		if (data.at_sea) {
-			var dateObj = new Date();
-			var year = dateObj.getUTCFullYear();
-			var month = dateObj.getUTCMonth()+1;
-			var day = dateObj.getUTCDate();
-			var departureDate = year + "/" + month + "/" + day;
-			slipCollection.update({current_boat:req.params.boatId}, {$set:{current_boat:"",arrival_date:""},$push:{departure_history:{departure_date:departureDate,departed_boat:req.params.boatId}}}, {w:1}, function(err, result) {
+			data.slip_number = null
+			slipCollection.update({current_boat:req.params.boatId}, {$set:{current_boat:"",arrival_date:""},$push:{departure_history:{departure_date:currentDate,departed_boat:req.params.boatId}}}, {w:1}, function(err, result) {
 				if (err) {console.log(err)}
 				if (result.result.n == 0) {
 					res.status(403).send('Error: Boat is already at sea');
@@ -114,6 +118,43 @@ router.put('/:boatId', function(req, res, next) {
 	});
 });
 
+/* PUT /boats/:boatId/arrive API */
+router.put('/arrive/:boatId', function(req, res, next) {
+	
+	// Checking for invalid id number
+	if (req.params.boatId.length != 24) {
+		res.status(403).send('Error: Invalid boatId number');
+		return;
+	}
+
+	MongoClient.connect(process.env.MONGO_URL, {}, function(err, db) {
+		var collection = db.collection('boats');
+		var slipCollection = db.collection('slips');
+		collection.find({_id:ObjectId(req.params.boatId)}).toArray(function(err, items) {
+			if (items.length == 0) {
+				res.status(404).send('Error: This boat does not exist');
+				return;
+			} else if (!items[0].at_sea) {
+				res.status(403).send('Error: This boat is currently not at sea');
+				return;
+			}
+			slipCollection.find({current_boat:""}).toArray(function(err, items) {
+				if(items.length == 0) {
+					res.status(403).send('Error: No vacant slips.');
+					return;
+				}
+				var slipNumber = items[0].number;
+				var slipId = items[0]._id;
+				slipCollection.update({_id:ObjectId(slipId)}, {$set:{current_boat:req.params.boatId, arrival_date:currentDate}}, {w:1}, function(err, result) {
+					collection.update({_id:ObjectId(req.params.boatId)}, {$set:{at_sea:false, slip_number:slipNumber}}, {w:1}, function(err, result) {
+						res.status(200).send('Success arrival');
+					});
+				});
+			});
+		});
+	});
+});
+
 /* DELETE /boats/:boatId API */
 router.delete('/:boatId', function(req, res, next) {
 	
@@ -131,12 +172,7 @@ router.delete('/:boatId', function(req, res, next) {
 			if (result.result.n == 0) { // If boat doesn't exist, throw 404
 				res.status(404).send('Error: Boat not found');
 			} else {
-				var dateObj = new Date();
-				var year = dateObj.getUTCFullYear();
-				var month = dateObj.getUTCMonth()+1;
-				var day = dateObj.getUTCDate();
-				var departureDate = year + "/" + month + "/" + day;
-				slipCollection.update({current_boat:req.params.boatId}, {$set:{current_boat:"", arrival_date:""},$push:{departure_history:{departure_date:departureDate, departed_boat:req.params.boatId}}}, {w:1}, function(err, result) {
+				slipCollection.update({current_boat:req.params.boatId}, {$set:{current_boat:"", arrival_date:""},$push:{departure_history:{departure_date:currentDate, departed_boat:req.params.boatId}}}, {w:1}, function(err, result) {
 					if (err) {return console.dir(err)}
 					res.status(200).send('DELETE Success');
 				});

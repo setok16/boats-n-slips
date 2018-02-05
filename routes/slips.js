@@ -4,6 +4,13 @@ var nestRouter = express.Router({mergeParams: true});
 var MongoClient = require('mongodb').MongoClient;
 var ObjectId = require('mongodb').ObjectID;
 
+/* Date Variable */
+var dateObj = new Date();
+var year = dateObj.getUTCFullYear();
+var month = dateObj.getUTCMonth()+1;
+var day = dateObj.getUTCDate();
+var currentDate = year + "/" + month + "/" + day;
+
 /* GET /slips API */
 router.get('/', function(req, res, next) {
 	MongoClient.connect(process.env.MONGO_URL, {}, function(err, db) {
@@ -87,16 +94,13 @@ router.put('/:slipId', function(req, res, next) {
 				if (items[0].current_boat) { // If the slip is preoccupied
 					res.status(403).send('Forbidden: This slip is preoccupied');
 				} else {
+				var slipNumber = items[0].number;
 
 					boatCollection.find({_id:ObjectId(data.current_boat)}).toArray(function(err, items) {
 						if (JSON.stringify(items[0])) { // If boat exists in boats collection
 							//console.log("Items: " + JSON.stringify(items));
-							var dateObj = new Date();
-							var year = dateObj.getUTCFullYear();
-							var month = dateObj.getUTCMonth()+1;
-							var day = dateObj.getUTCDate();
-							data.arrival_date = year + "/" + month + "/" + day;
-							boatCollection.update({_id:ObjectId(data.current_boat)}, {$set:{at_sea: false}}, {w:1}, function (err, result) { // Updating at_sea
+							data.arrival_date = currentDate;
+							boatCollection.update({_id:ObjectId(data.current_boat)}, {$set:{at_sea: false, slip_number:slipNumber}}, {w:1}, function (err, result) { // Updating at_sea
 								collection.update({_id:ObjectId(req.params.slipId)}, {$set:data}, {w:1}, function(err, result) {
 									res.status(200).send('PUT Success');
 								});
@@ -136,7 +140,7 @@ router.delete('/:slipId', function(req, res, next) {
 			}
 			collection.remove({_id:ObjectId(req.params.slipId)}, {w:1}, function(err, result) {
 				if (items[0].current_boat) {
-					boatCollection.update({_id:ObjectId(items[0].current_boat)}, {$set:{at_sea:true}}, {w:1}, function(err, result) {
+					boatCollection.update({_id:ObjectId(items[0].current_boat)}, {$set:{at_sea:true, slip_number:null}}, {w:1}, function(err, result) {
 						if (err) {return console.dir(err)}
 						res.status(200).send('DELETE Success');
 					});
